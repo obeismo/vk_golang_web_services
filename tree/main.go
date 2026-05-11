@@ -15,8 +15,7 @@ func dirTree(out io.Writer, path string, printFiles bool) error {
 			return err
 		}
 		defer func(file *os.File) {
-			err := file.Close()
-			if err != nil {
+			if err := file.Close(); err != nil {
 				fmt.Println("problem closing file")
 			}
 		}(file)
@@ -31,8 +30,8 @@ func dirTree(out io.Writer, path string, printFiles bool) error {
 		})
 
 		totalVisible := 0
-		for _, v := range dirEntry {
-			info, _ := v.Info()
+		for _, entry := range dirEntry {
+			info, _ := entry.Info()
 			if info.IsDir() || printFiles {
 				totalVisible++
 			}
@@ -40,49 +39,58 @@ func dirTree(out io.Writer, path string, printFiles bool) error {
 
 		printed := 0
 
-		for _, v := range dirEntry {
-			fileInfo, _ := v.Info()
+		for _, entry := range dirEntry {
+			fileInfo, err := entry.Info()
+			if err != nil {
+				return err
+			}
+
 			if !fileInfo.IsDir() && !printFiles {
 				continue
 			}
+
 			printed++
 			isLast := printed == totalVisible
+
 			marker := "├───"
 			if isLast {
 				marker = "└───"
 			}
 
 			if fileInfo.IsDir() {
-				fmt.Fprintf(out, "%s%s%s\n", prefix, marker, v.Name())
+				if _, err := fmt.Fprintf(out, "%s%s%s\n", prefix, marker, entry.Name()); err != nil {
+					return err
+				}
 			} else {
+				sizeStr := fmt.Sprintf(" (%db)", fileInfo.Size())
 				if fileInfo.Size() == 0 {
-					fmt.Fprintf(out, "%s%s%s (empty)\n", prefix, marker, v.Name())
-				} else {
-					fmt.Fprintf(out, "%s%s%s (%db)\n", prefix, marker, v.Name(), fileInfo.Size())
+					sizeStr = " (empty)"
+				}
+
+				if _, err := fmt.Fprintf(out, "%s%s%s%s\n", prefix, marker, entry.Name(), sizeStr); err != nil {
+					return err
 				}
 			}
 
 			if fileInfo.IsDir() {
-				dirPath := currPath + "/" + v.Name()
+				dirPath := currPath + "/" + entry.Name()
 				indent := prefix + "│\t"
 				if isLast {
 					indent = prefix + "\t"
 				}
-				err := walk(dirPath, indent)
-				if err != nil {
+				if err := walk(dirPath, indent); err != nil {
 					return err
 				}
-
 			}
 		}
 
 		return nil
 	}
 
-	err := walk(path, "")
-	if err != nil {
+	if err := walk(path, ""); err != nil {
 		return err
 	}
+
 	return nil
 }
 
