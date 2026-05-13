@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"io"
@@ -37,25 +38,22 @@ func FastSearch(out io.Writer) {
 		}
 	}()
 
-	fileContents, err := io.ReadAll(file)
-	if err != nil {
-		panic(err)
-	}
+	scanner := bufio.NewScanner(file)
 
-	seenBrowsers := make([]string, 0)
+	seenBrowsers := make([]string, 0, 100)
 	uniqueBrowsers := 0
 	foundUsers := &bytes.Buffer{}
 
-	lines := bytes.Split(fileContents, []byte("\n"))
-
 	json := jsoniter.ConfigFastest
 
-	users := make([]User, 0, len(lines))
+	users := make([]User, 0)
 	user := User{}
-	for _, line := range lines {
+	for scanner.Scan() {
 		//if !(bytes.Contains(line, []byte("Android")) && bytes.Contains(line, []byte("MSIE"))) {
 		//	continue
 		//}
+		line := scanner.Bytes()
+
 		user.Name = ""
 		user.Email = ""
 		user.Browsers = nil
