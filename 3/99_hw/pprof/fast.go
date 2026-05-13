@@ -40,32 +40,24 @@ func FastSearch(out io.Writer) {
 
 	scanner := bufio.NewScanner(file)
 
-	seenBrowsers := make([]string, 0, 100)
-	uniqueBrowsers := 0
+	i := -1
+	seenBrowsers := make(map[string]bool, 100)
 	foundUsers := &bytes.Buffer{}
 
 	json := jsoniter.ConfigFastest
 
-	users := make([]User, 0)
 	user := User{}
 	for scanner.Scan() {
-		//if !(bytes.Contains(line, []byte("Android")) && bytes.Contains(line, []byte("MSIE"))) {
-		//	continue
-		//}
+		i++
 		line := scanner.Bytes()
 
 		user.Name = ""
 		user.Email = ""
 		user.Browsers = nil
 		// fmt.Printf("%v %v\n", err, line)
-		err := json.Unmarshal(line, &user)
-		if err != nil {
+		if err := json.Unmarshal(line, &user); err != nil {
 			panic(err)
 		}
-		users = append(users, user)
-	}
-
-	for i, user := range users {
 
 		isAndroid := false
 		isMSIE := false
@@ -75,34 +67,11 @@ func FastSearch(out io.Writer) {
 		for _, browser := range browsers {
 			if ok := strings.Contains(browser, "Android"); ok {
 				isAndroid = true
-				notSeenBefore := true
-				for _, item := range seenBrowsers {
-					if item == browser {
-						notSeenBefore = false
-					}
-				}
-				if notSeenBefore {
-					// log.Printf("SLOW New browser: %s, first seen: %s", browser, user["name"])
-					seenBrowsers = append(seenBrowsers, browser)
-					uniqueBrowsers++
-				}
+				seenBrowsers[browser] = true
 			}
-		}
-
-		for _, browser := range browsers {
 			if ok := strings.Contains(browser, "MSIE"); ok {
 				isMSIE = true
-				notSeenBefore := true
-				for _, item := range seenBrowsers {
-					if item == browser {
-						notSeenBefore = false
-					}
-				}
-				if notSeenBefore {
-					// log.Printf("SLOW New browser: %s, first seen: %s", browser, user["name"])
-					seenBrowsers = append(seenBrowsers, browser)
-					uniqueBrowsers++
-				}
+				seenBrowsers[browser] = true
 			}
 		}
 
